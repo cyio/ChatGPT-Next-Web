@@ -22,10 +22,39 @@ export class GeminiProApi implements LLMApi {
   }
   async chat(options: ChatOptions): Promise<void> {
     const apiClient = this;
-    const messages = options.messages.map((v) => ({
-      role: v.role.replace("assistant", "model").replace("system", "user"),
-      parts: [{ text: v.content }],
-    }));
+    console.log("debug", options.messages);
+    const messages = options.messages.map((v) => {
+      if (v.attachFiles && v.attachFiles.length > 0) {
+        const content = [];
+        for (const file of v.attachFiles) {
+          content.push({
+            // type: "image_url",
+            // image_url: {
+            //   url: file.base64,
+            // },
+            inlineData: {
+              data: file.base64Main,
+              // mimeType: 'image/jpg',
+              mimeType: file.mimetype,
+            },
+          });
+        }
+
+        content.push({
+          // type: "text",
+          text: v.content,
+        });
+        return {
+          role: v.role.replace("assistant", "model").replace("system", "user"),
+          parts: content,
+        };
+      } else {
+        return {
+          role: v.role.replace("assistant", "model").replace("system", "user"),
+          parts: [{ text: v.content }],
+        };
+      }
+    });
 
     // google requires that role in neighboring messages must not be the same
     for (let i = 0; i < messages.length - 1; ) {
